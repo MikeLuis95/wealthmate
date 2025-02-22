@@ -13,16 +13,17 @@
         }
         .header {
             display: flex;
-            justify-content: center; /* Center horizontally */
-            align-items: center; /* Center vertically within header */
+            align-items: center;
+            justify-content: flex-end;
             margin-bottom: 20px;
-            background-color: #ffffff; /* Change to your logo’s background color */
-            padding: 20px;
+            background-color: #ffffff; /* Change this to match your logo’s background color */
+            padding: 10px;
             border-radius: 5px;
         }
         .header img {
-            width: 200px; /* Bigger logo size - adjust as needed */
+            width: 100px; /* Adjust based on your logo size */
             height: auto;
+            margin-right: 15px;
         }
         .section {
             margin-bottom: 20px;
@@ -92,10 +93,237 @@
 </head>
 <body>
     <div class="header">
-        <img src="logo.png" alt="WealthMate Logo">
+        <img src="logo.png" alt="WealthMate Logo"> <!-- Logo only, no text -->
     </div>
 
     <div class="section">
         <label for="monthYear">Select Month & Year:</label>
         <select id="monthYear" onchange="loadBudget()">
+            <!-- Options populated by JS -->
+        </select>
+    </div>
+
+    <div class="section" id="incomeSection">
+        <h3>Income (Inflows)</h3>
+        <div id="incomeInputs">
+            <div class="input-row">
+                <input type="text" placeholder="Income Name (e.g., Salary)">
+                <input type="number" placeholder="Amount ($)">
+            </div>
+        </div>
+        <button class="add-btn" onclick="addIncomeField()">Add Income</button>
+    </div>
+
+    <div class="section" id="expenseSection">
+        <h3>Expenses (Outflows)</h3>
+        <div id="expenseInputs">
+            <div class="input-row">
+                <input type="text" placeholder="Expense Name (e.g., Rent)">
+                <input type="number" placeholder="Amount ($)">
+            </div>
+        </div>
+        <button class="add-btn" onclick="addExpenseField()">Add Expense</button>
+    </div>
+
+    <button onclick="calculateAndSaveBudget()">Calculate & Save Budget</button>
+    <button class="summary-btn" onclick="showYearlySummary()">Show Yearly Summary</button>
+    <button class="clear-btn" onclick="clearBudget()">Clear This Month's Budget</button>
+    <div id="result"></div>
+    <div id="yearlySummary"></div>
+
+    <script>
+        let budgets = JSON.parse(localStorage.getItem('wealthMateBudgets')) || {};
+
+        function populateMonthYear() {
+            const select = document.getElementById('monthYear');
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            const currentYear = new Date().getFullYear();
+            select.innerHTML = '';
+            for (let year = currentYear - 1; year <= currentYear + 1; year++) {
+                months.forEach((month, index) => {
+                    const value = `${year}-${index + 1}`;
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.text = `${month} ${year}`;
+                    select.appendChild(option);
+                });
+            }
+            const now = new Date();
+            select.value = `${now.getFullYear()}-${now.getMonth() + 1}`;
+            loadBudget();
+        }
+
+        function addIncomeField() {
+            const incomeInputs = document.getElementById('incomeInputs');
+            const newRow = document.createElement('div');
+            newRow.className = 'input-row';
+            newRow.innerHTML = `
+                <input type="text" placeholder="Income Name (e.g., Salary)">
+                <input type="number" placeholder="Amount ($)">
+            `;
+            incomeInputs.appendChild(newRow);
+        }
+
+        function addExpenseField() {
+            const expenseInputs = document.getElementById('expenseInputs');
+            const newRow = document.createElement('div');
+            newRow.className = 'input-row';
+            newRow.innerHTML = `
+                <input type="text" placeholder="Expense Name (e.g., Rent)">
+                <input type="number" placeholder="Amount ($)">
+            `;
+            expenseInputs.appendChild(newRow);
+        }
+
+        function calculateAndSaveBudget() {
+            const monthYear = document.getElementById('monthYear').value;
+
+            const incomeRows = document.querySelectorAll('#incomeInputs .input-row');
+            let totalIncome = 0;
+            let incomeBreakdown = '';
+            const incomeData = [];
+            incomeRows.forEach(row => {
+                const name = row.querySelector('input[type="text"]').value || 'Unnamed Income';
+                const amount = parseFloat(row.querySelector('input[type="number"]').value) || 0;
+                totalIncome += amount;
+                incomeBreakdown += `${name}: $${amount.toFixed(2)}<br>`;
+                incomeData.push({ name, amount });
+            });
+
+            const expenseRows = document.querySelectorAll('#expenseInputs .input-row');
+            let totalExpenses = 0;
+            let expenseBreakdown = '';
+            const expenseData = [];
+            expenseRows.forEach(row => {
+                const name = row.querySelector('input[type="text"]').value || 'Unnamed Expense';
+                const amount = parseFloat(row.querySelector('input[type="number"]').value) || 0;
+                totalExpenses += amount;
+                expenseBreakdown += `${name}: $${amount.toFixed(2)}<br>`;
+                expenseData.push({ name, amount });
+            });
+
+            const budgetResult = totalIncome - totalExpenses;
+            const resultDiv = document.getElementById('result');
+            let resultHTML = `
+                <strong>Total Income: $${totalIncome.toFixed(2)}</strong><br>
+                ${incomeBreakdown}<br>
+                <strong>Total Expenses: $${totalExpenses.toFixed(2)}</strong><br>
+                ${expenseBreakdown}<br>
+            `;
+            if (budgetResult > 0) {
+                resultDiv.style.color = 'green';
+                resultHTML += `Monthly Surplus: $${budgetResult.toFixed(2)}<br>You have extra money this month!`;
+            } else if (budgetResult < 0) {
+                resultDiv.style.color = 'red';
+                resultHTML += `Monthly Deficit: $${Math.abs(budgetResult).toFixed(2)}<br>You need to reduce expenses or increase income.`;
+            } else {
+                resultDiv.style.color = 'black';
+                resultHTML += `Balanced Budget: $${budgetResult.toFixed(2)}<br>Your income equals your expenses.`;
+            }
+            resultDiv.innerHTML = resultHTML;
+
+            budgets[monthYear] = { income: incomeData, expenses: expenseData };
+            localStorage.setItem('wealthMateBudgets', JSON.stringify(budgets));
+        }
+
+        function loadBudget() {
+            const monthYear = document.getElementById('monthYear').value;
+            const budget = budgets[monthYear] || { income: [], expenses: [] };
+
+            const incomeInputs = document.getElementById('incomeInputs');
+            incomeInputs.innerHTML = '';
+            if (budget.income.length === 0) {
+                addIncomeField();
+            } else {
+                budget.income.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'input-row';
+                    row.innerHTML = `
+                        <input type="text" value="${item.name}" placeholder="Income Name (e.g., Salary)">
+                        <input type="number" value="${item.amount}" placeholder="Amount ($)">
+                    `;
+                    incomeInputs.appendChild(row);
+                });
+            }
+
+            const expenseInputs = document.getElementById('expenseInputs');
+            expenseInputs.innerHTML = '';
+            if (budget.expenses.length === 0) {
+                addExpenseField();
+            } else {
+                budget.expenses.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'input-row';
+                    row.innerHTML = `
+                        <input type="text" value="${item.name}" placeholder="Expense Name (e.g., Rent)">
+                        <input type="number" value="${item.amount}" placeholder="Amount ($)">
+                    `;
+                    expenseInputs.appendChild(row);
+                });
+            }
+
+            calculateAndSaveBudget();
+        }
+
+        function showYearlySummary() {
+            const monthYear = document.getElementById('monthYear').value;
+            const year = monthYear.split('-')[0];
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            let yearlyIncome = 0;
+            let yearlyExpenses = 0;
+            let summaryHTML = `<h3>${year} Yearly Summary</h3>`;
+            let hasData = false;
+
+            for (let month = 1; month <= 12; month++) {
+                const key = `${year}-${month}`;
+                if (budgets[key]) {
+                    hasData = true;
+                    const income = budgets[key].income.reduce((sum, item) => sum + item.amount, 0);
+                    const expenses = budgets[key].expenses.reduce((sum, item) => sum + item.amount, 0);
+                    const monthlyResult = income - expenses;
+                    yearlyIncome += income;
+                    yearlyExpenses += expenses;
+                    summaryHTML += `${months[month - 1]}: $${monthlyResult.toFixed(2)}<br>`;
+                } else {
+                    summaryHTML += `${months[month - 1]}: No data<br>`;
+                }
+            }
+
+            const yearlyResult = yearlyIncome - yearlyExpenses;
+            summaryHTML += `<br><strong>Total Yearly Income: $${yearlyIncome.toFixed(2)}</strong><br>`;
+            summaryHTML += `<strong>Total Yearly Expenses: $${yearlyExpenses.toFixed(2)}</strong><br>`;
+            if (yearlyResult > 0) {
+                summaryHTML += `<span style="color: green">Yearly Surplus: $${yearlyResult.toFixed(2)}</span>`;
+            } else if (yearlyResult < 0) {
+                summaryHTML += `<span style="color: red">Yearly Deficit: $${Math.abs(yearlyResult).toFixed(2)}</span>`;
+            } else {
+                summaryHTML += `<span style="color: black">Yearly Balanced: $${yearlyResult.toFixed(2)}</span>`;
+            }
+
+            const summaryDiv = document.getElementById('yearlySummary');
+            summaryDiv.innerHTML = hasData ? summaryHTML : `No budget data for ${year} yet. Add some months!`;
+        }
+
+        function clearBudget() {
+            const monthYear = document.getElementById('monthYear').value;
+            if (confirm(`Are you sure you want to clear the budget for ${document.getElementById('monthYear').options[document.getElementById('monthYear').selectedIndex].text}?`)) {
+                delete budgets[monthYear];
+                localStorage.setItem('wealthMateBudgets', JSON.stringify(budgets));
+                loadBudget();
+                document.getElementById('yearlySummary').innerHTML = '';
+            }
+        }
+
+        // Initialize the page
+        populateMonthYear();
+    </script>
+</body>
+</html>
             <!-
