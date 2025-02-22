@@ -5,15 +5,25 @@
     <title>WealthMate</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif; /* Slightly friendlier font */
             max-width: 900px;
             margin: 20px auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #f9f9f9; /* Softer background */
         }
         .header {
-            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
             margin-bottom: 20px;
+            background: linear-gradient(to right, #ff6200, #2196F3); /* Gradient banner */
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .header img {
+            width: 100px; /* Adjust based on your logo size */
+            height: auto;
+            margin-right: 15px;
         }
         .header span.orange {
             color: #ff6200;
@@ -36,10 +46,14 @@
         select, input[type="text"] {
             width: 200px;
             padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         input[type="number"] {
             width: 150px;
             padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         button {
             padding: 10px 20px;
@@ -49,6 +63,7 @@
             cursor: pointer;
             border-radius: 5px;
             margin-right: 10px;
+            transition: background-color 0.3s; /* Smooth hover effect */
         }
         button:hover {
             background-color: #45a049;
@@ -66,17 +81,25 @@
         .summary-btn:hover {
             background-color: #e55a00;
         }
+        .clear-btn {
+            background-color: #f44336;
+        }
+        .clear-btn:hover {
+            background-color: #d32f2f;
+        }
         #result, #yearlySummary {
             margin-top: 20px;
             padding: 15px;
             background-color: white;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #2196F3; /* Blue accent */
         }
     </style>
 </head>
 <body>
     <div class="header">
+        <img src="logo.png" alt="WealthMate Logo"> <!-- Your logo here -->
         <h2><span class="orange">Wealth</span><span class="blue">Mate</span></h2>
     </div>
 
@@ -111,6 +134,7 @@
 
     <button onclick="calculateAndSaveBudget()">Calculate & Save Budget</button>
     <button class="summary-btn" onclick="showYearlySummary()">Show Yearly Summary</button>
+    <button class="clear-btn" onclick="clearBudget()">Clear This Month's Budget</button>
     <div id="result"></div>
     <div id="yearlySummary"></div>
 
@@ -164,7 +188,6 @@
         function calculateAndSaveBudget() {
             const monthYear = document.getElementById('monthYear').value;
 
-            // Get income
             const incomeRows = document.querySelectorAll('#incomeInputs .input-row');
             let totalIncome = 0;
             let incomeBreakdown = '';
@@ -177,7 +200,6 @@
                 incomeData.push({ name, amount });
             });
 
-            // Get expenses
             const expenseRows = document.querySelectorAll('#expenseInputs .input-row');
             let totalExpenses = 0;
             let expenseBreakdown = '';
@@ -190,7 +212,6 @@
                 expenseData.push({ name, amount });
             });
 
-            // Calculate result
             const budgetResult = totalIncome - totalExpenses;
             const resultDiv = document.getElementById('result');
             let resultHTML = `
@@ -211,7 +232,6 @@
             }
             resultDiv.innerHTML = resultHTML;
 
-            // Save to localStorage
             budgets[monthYear] = { income: incomeData, expenses: expenseData };
             localStorage.setItem('wealthMateBudgets', JSON.stringify(budgets));
         }
@@ -296,6 +316,16 @@
 
             const summaryDiv = document.getElementById('yearlySummary');
             summaryDiv.innerHTML = hasData ? summaryHTML : `No budget data for ${year} yet. Add some months!`;
+        }
+
+        function clearBudget() {
+            const monthYear = document.getElementById('monthYear').value;
+            if (confirm(`Are you sure you want to clear the budget for ${document.getElementById('monthYear').options[document.getElementById('monthYear').selectedIndex].text}?`)) {
+                delete budgets[monthYear];
+                localStorage.setItem('wealthMateBudgets', JSON.stringify(budgets));
+                loadBudget();
+                document.getElementById('yearlySummary').innerHTML = '';
+            }
         }
 
         // Initialize the page
